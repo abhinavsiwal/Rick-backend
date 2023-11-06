@@ -1,65 +1,78 @@
 const Imap = require("node-imap");
 const simpleParser = require("mailparser").simpleParser;
-exports.emailHandler = () => {
-  const imap = new Imap({
-    user: "dagarharish931@gmail.com",
-    password: "khaa blfv tkkd qinh",
-    host: "imap.gmail.com",
-    port: 993, // IMAPS (secure IMAP) port
-    tls: true,
-  });
+const Email = require("../models/Email");
 
-  imap.once("ready", () => {
-    imap.openBox("INBOX", false, (err, mailbox) => {
-      if (err) {
-        res.status(500).json({ error: "Error opening mailbox" });
-        return;
-      }
+const imap = new Imap({
+  user: "dagarharish931@gmail.com",
+  password: "khaa blfv tkkd qinh",
+  host: "imap.gmail.com",
+  port: 993, // IMAPS (secure IMAP) port
+  tls: true,
+});
 
-      const fetchOptions = {
-        bodies: ['HEADER.FIELDS (FROM)','TEXT'],
-        struct: true,
-      };
+imap.once("ready", async () => {
+  imap.openBox("INBOX", false, (err, mailbox) => {
+    if (err) {
+      console.error("Error opening mailbox:", err);
+      return;
+    }
 
-      const messages = [];
+    // Create an IMAP IDLE connection to listen for new messages
+    imap.on("mail", async (numNewMsgs) => {
+      console.log("numNewMsgs:", numNewMsgs);
+      // Fetch the latest email address from the new email(s) and save it to MongoDB
+      const fetch = imap.seq.fetch(
+        mailbox.messages.total - numNewMsgs + 1 + ":*",
+        {
+          bodies: "",
+          struct: true,
+        }
+      );
 
-      console.log("mailbox.messages.total:", mailbox.messages.total);
-
-      const fetch = imap.seq.fetch(`1:*`, fetchOptions);
-      fetch.on("message", (msg) => {
-        msg.on("body", (stream) => {
+      fetch.on("message", async (msg) => {
+        msg.on("body", async (stream) => {
           let buffer = "";
-          stream.on("data", (chunk) => {
+
+          stream.on("data", async (chunk) => {
             buffer += chunk.toString("utf8");
           });
 
           stream.on("end", () => {
-            // Parse email data as needed
-
-            simpleParser(buffer, (err, parsed) => {
+            simpleParser(buffer, async (err, parsed) => {
               if (err) {
                 console.error("Error parsing email:", err);
                 return;
               }
 
               emailData = {
-                to: parsed?.headers?.get("from")?.text?.match(/<(.*)>/)[1]|| "",
+                from:
+                  parsed?.headers?.get("from")?.text?.match(/<(.*)>/)[1] || "",
                 text: parsed.text,
-                // html: parsed.html,
+                date: parsed.date,
               };
-              console.log("emailData:", emailData);
-              messages.push(emailData);
+
+              try {
+                
+                const emailDomain = emailData.from.split("@")[1];
+                console.log(emailDomain);
+                if(emailDomain !== "applore.in") {
+                  console.log("Email domain is not applore.in");
+                  return;
+                }
+
+
+                const email = new Email(emailData);
+                await email.save();
+                console.log("Email saved to MongoDB:", email);
+              } catch (error) {
+                console.log(error);
+              }
             });
           });
         });
       });
-
-      fetch.once("end", () => {
-        // console.log(messages);
-        imap.end();
-      });
     });
   });
+});
 
-  imap.connect();
-};
+imap.connect();
