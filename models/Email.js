@@ -14,6 +14,9 @@ const emailSchema = new mongoose.Schema(
       type: Date,
       required: true,
     },
+    city: {
+      type: String,
+    },
   },
   {
     timestamps: true,

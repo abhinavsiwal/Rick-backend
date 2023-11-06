@@ -1,7 +1,7 @@
 const Imap = require("node-imap");
 const simpleParser = require("mailparser").simpleParser;
 const Email = require("../models/Email");
-
+const { cities } = require("../constants/cities");
 const imap = new Imap({
   user: "dagarharish931@gmail.com",
   password: "khaa blfv tkkd qinh",
@@ -28,7 +28,6 @@ imap.once("ready", async () => {
           struct: true,
         }
       );
-
       fetch.on("message", async (msg) => {
         msg.on("body", async (stream) => {
           let buffer = "";
@@ -52,14 +51,18 @@ imap.once("ready", async () => {
               };
 
               try {
-                
                 const emailDomain = emailData.from.split("@")[1];
                 console.log(emailDomain);
-                if(emailDomain !== "applore.in") {
+                if (emailDomain !== "applore.in") {
                   console.log("Email domain is not applore.in");
                   return;
                 }
 
+                cities.forEach((city) => {
+                  if (emailData.text.includes(city)) {
+                    emailData.city = city;
+                  }
+                });
 
                 const email = new Email(emailData);
                 await email.save();
