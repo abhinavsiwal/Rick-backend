@@ -10,6 +10,10 @@ app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
 // Import all the Routes
 require("./controllers/emailControllers")
+const dashboardRoute = require("./routes/dashboardRoute");
+
+// Use all the Routes
+app.use("/dashboard", dashboardRoute);
 
 
 app.use("*", (req, res, next) => {
