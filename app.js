@@ -13,7 +13,7 @@ require("./controllers/emailControllers")
 const dashboardRoute = require("./routes/dashboardRoute");
 
 // Use all the Routes
-app.use("/dashboard", dashboardRoute);
+app.use("/api/dashboard", dashboardRoute);
 
 
 app.use("*", (req, res, next) => {
