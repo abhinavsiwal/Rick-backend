@@ -11,9 +11,11 @@ app.use(bodyParser.json());
 // Import all the Routes
 require("./controllers/emailControllers")
 const dashboardRoute = require("./routes/dashboardRoute");
+const authRoute = require("./routes/authRoute");
 
 // Use all the Routes
 app.use("/api/dashboard", dashboardRoute);
+app.use("/api/auth", authRoute);
 
 
 app.use("*", (req, res, next) => {
