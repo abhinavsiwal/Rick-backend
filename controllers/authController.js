@@ -119,3 +119,67 @@ exports.getAllUsers = async (req, res, next) => {
     return next(error);
   }
 };
+
+exports.changePassword = [
+  body("newPassword")
+    .notEmpty()
+    .isString()
+    .withMessage("Password must not be empty."),
+  async (req, res, next) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      const error = new Error("Invalid value(s).");
+      error.status = 422;
+      error.data = errors.array();
+      return next(error);
+    }
+    try {
+      const user = await User.findByIdAndUpdate(req.user._id, {
+        password: await argon2.hash(req.body.newPassword),
+      },{
+        new:true
+      });
+      console.log(user);
+      res.status(200).json({
+        message: "Password changed successfully.",
+      });
+    } catch (err) {
+      console.log(err);
+      const error = new Error("Signup failed.");
+      error.status = 401;
+      return next(error);
+    }
+  },
+];
+
+exports.updateUser =[
+  body("name").notEmpty().withMessage("Name is required."),
+  body("email").isEmail().withMessage("Please enter a valid email address."),
+  async (req, res, next) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      const error = new Error("Invalid value(s).");
+      error.status = 422;
+      error.data = errors.array();
+      return next(error);
+    }
+    try {
+      const user = await User.findByIdAndUpdate(req.user._id, {
+        name:req.body.name,
+        email:req.body.email
+      },{
+        new:true
+      });
+      console.log(user);
+      res.status(200).json({
+        message: "User updated successfully.",
+        user
+      });
+    } catch (err) {
+      console.log(err);
+      const error = new Error("Signup failed.");
+      error.status = 401;
+      return next(error);
+    }
+  },
+];
