@@ -134,11 +134,15 @@ exports.changePassword = [
       return next(error);
     }
     try {
-      const user = await User.findByIdAndUpdate(req.user._id, {
-        password: await argon2.hash(req.body.newPassword),
-      },{
-        new:true
-      });
+      const user = await User.findByIdAndUpdate(
+        req.user._id,
+        {
+          password: await argon2.hash(req.body.newPassword),
+        },
+        {
+          new: true,
+        }
+      );
       console.log(user);
       res.status(200).json({
         message: "Password changed successfully.",
@@ -152,7 +156,7 @@ exports.changePassword = [
   },
 ];
 
-exports.updateUser =[
+exports.updateUser = [
   body("name").notEmpty().withMessage("Name is required."),
   body("email").isEmail().withMessage("Please enter a valid email address."),
   async (req, res, next) => {
@@ -164,16 +168,20 @@ exports.updateUser =[
       return next(error);
     }
     try {
-      const user = await User.findByIdAndUpdate(req.user._id, {
-        name:req.body.name,
-        email:req.body.email
-      },{
-        new:true
-      });
+      const user = await User.findByIdAndUpdate(
+        req.user._id,
+        {
+          name: req.body.name,
+          email: req.body.email,
+        },
+        {
+          new: true,
+        }
+      );
       console.log(user);
       res.status(200).json({
         message: "User updated successfully.",
-        user
+        user,
       });
     } catch (err) {
       console.log(err);
@@ -183,3 +191,17 @@ exports.updateUser =[
     }
   },
 ];
+
+exports.deleteUser = async (req, res, next) => {
+  try {
+    const user = await User.findByIdAndDelete(req.params.id);
+    res.status(200).json({
+      message: "User deleted successfully.",
+    });
+  } catch (err) {
+    console.log(err);
+    const error = new Error("User delete failed.");
+    error.status = 401;
+    return next(error);
+  }
+};
