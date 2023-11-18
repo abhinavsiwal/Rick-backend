@@ -1,6 +1,7 @@
 const Email = require("../models/Email");
 const moment = require("moment");
 const { cities } = require("../constants/cities");
+const e = require("express");
 
 exports.getDashboardData = async (req, res, next) => {
   try {
@@ -66,63 +67,46 @@ exports.getDashboardData = async (req, res, next) => {
 };
 
 exports.getReport = async (req, res, next) => {
-  const { startDate, endDate } = req.query;
+  let { startDate, endDate } = req.query;
 
-  const fromDate = new Date(startDate);
-  const toDate = new Date(endDate);
-  console.log(fromDate, toDate);
+  startDate = new Date(startDate);
+  endDate = new Date(endDate);
+  console.log(startDate, endDate);
 
   try {
     const result = [];
-    for (
-      let currentDate = fromDate;
-      currentDate <= toDate;
-      currentDate.setDate(currentDate.getDate() + 1)
-    ) {
-      const dateResult = {
-        date: new Date(currentDate), // Store the current date
-        citiesData: [], // Store data for each city for the current date
+    for (const city of cities) {
+      const emails = await Email.find({
+        city,
+        date: { $gte: startDate, $lte: endDate },
+      }).sort("date");
+
+      const formattedData = {
+        city,
+        totalEmails: emails.length.toString(),
+        dates: [],
       };
 
-      // Iterate over each city
-      for (const city of cities) {
-        const cityData = await Email.aggregate([
-          {
-            $match: { date: { $gte: fromDate, $lte: toDate } },
-          },
-          {
-            $group: {
-              _id: null,
-              emailCount: { $sum: 1 },
-            },
-          },
-        ]);
+      // Generate dates between start and end date
+      const currentDate = moment(startDate);
+      const endDateMoment = moment(endDate);
 
-        const emailCount = cityData.length > 0 ? cityData[0].emailCount : 0;
+      while (currentDate.isSameOrBefore(endDateMoment)) {
+        const dateStr = currentDate.format("DD MMM");
+        const totalEmailsOnDate = emails
+          .filter((email) => moment(email.date).isSame(currentDate, "day"))
+          .length.toString();
 
-        dateResult.citiesData.push({ city, emailCount });
+        formattedData.dates.push({
+          date: dateStr,
+          totalEmails: totalEmailsOnDate,
+        });
+
+        currentDate.add(1, "day");
       }
-      console.log(dateResult);
-      result.push(dateResult);
+
+      result.push(formattedData);
     }
-
-    // const dateResult = await Email.aggregate([
-    //   // Match emails within the specified date range
-    //   { $match: { date: { $gte: fromDate, $lte: toDate } } },
-
-    //   // Unwind the 'cities' array to create a separate document for each city
-    //   { $unwind: "$cities" },
-
-    //   // Group emails by city and count their occurrences
-    //   {
-    //     $group: {
-    //       _id: "$cities",
-    //       count: { $sum: 1 },
-    //     },
-    //   },
-    //   // Sort the results by city name
-    //   { $sort: { _id: 1 } },
-    // ]);
 
     return res.status(200).json({ result });
   } catch (err) {
@@ -132,3 +116,12 @@ exports.getReport = async (req, res, next) => {
     return next(error);
   }
 };
+function getAllDates(startDate, endDate) {
+  const allDates = [];
+  let currentDate = new Date(startDate);
+  while (currentDate <= endDate) {
+    allDates.push(currentDate.toISOString().split("T")[0]);
+    currentDate.setDate(currentDate.getDate() + 1);
+  }
+  return allDates;
+}
