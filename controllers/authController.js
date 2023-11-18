@@ -134,6 +134,8 @@ exports.changePassword = [
       return next(error);
     }
     try {
+
+
       const user = await User.findByIdAndUpdate(
         req.user._id,
         {
@@ -205,3 +207,58 @@ exports.deleteUser = async (req, res, next) => {
     return next(error);
   }
 };
+exports.getLoggedInUser = async (req, res, next) => {
+  try {
+    const user = await User.findById(req.user._id);
+    res.status(200).json({
+      user,
+    });
+  } catch (err) {
+    console.log(err);
+    const error = new Error("User fetch failed.");
+    error.status = 401;
+    return next(error);
+  }
+}
+
+exports.updateLoggedInUser = [
+  body("name").notEmpty().withMessage("Name is required."),
+  body("email").isEmail().withMessage("Please enter a valid email address."),
+  body("city").notEmpty().withMessage("City is required."),
+  body("state").notEmpty().withMessage("State is required."),
+  body("address").notEmpty().withMessage("Address is required."),
+  async (req, res, next) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      const error = new Error("Invalid value(s).");
+      error.status = 422;
+      error.data = errors.array();
+      return next(error);
+    }
+    try {
+      const user = await User.findByIdAndUpdate(
+        req.user._id,
+        {
+          name: req.body.name,
+          email: req.body.email,
+          city: req.body.city,
+          state: req.body.state,
+          address: req.body.address,
+        },
+        {
+          new: true,
+        }
+      );
+      console.log(user);
+      res.status(200).json({
+        message: "User updated successfully.",
+        user,
+      });
+    } catch (err) {
+      console.log(err);
+      const error = new Error("Signup failed.");
+      error.status = 401;
+      return next(error);
+    }
+  }
+]

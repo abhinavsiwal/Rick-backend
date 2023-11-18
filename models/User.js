@@ -21,6 +21,15 @@ const userSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+    city: {
+      type: String,
+    },
+    state: {
+      type: String,
+    },
+    address: {
+      type: String,
+    },
   },
   {
     timestamps: true,
