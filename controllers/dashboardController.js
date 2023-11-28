@@ -1,7 +1,8 @@
 const Email = require("../models/Email");
 const moment = require("moment");
-const { cities } = require("../constants/cities");
-const e = require("express");
+const { cities,nbwCities,nbeCities } = require("../constants/cities");
+
+const { body, validationResult } = require("express-validator");
 
 exports.getDashboardData = async (req, res, next) => {
   try {
@@ -67,11 +68,18 @@ exports.getDashboardData = async (req, res, next) => {
 };
 
 exports.getReport = async (req, res, next) => {
-  let { startDate, endDate } = req.query;
+  let { startDate, endDate,region } = req.query;
 
   startDate = new Date(startDate);
   endDate = new Date(endDate);
   console.log(startDate, endDate);
+
+  let cities;
+  if(region==="nbw"){
+    cities = nbwCities
+  } else if (region==="nbe"){
+    cities = nbeCities
+  }
 
   try {
     const result = [];
@@ -116,12 +124,57 @@ exports.getReport = async (req, res, next) => {
     return next(error);
   }
 };
-function getAllDates(startDate, endDate) {
-  const allDates = [];
-  let currentDate = new Date(startDate);
-  while (currentDate <= endDate) {
-    allDates.push(currentDate.toISOString().split("T")[0]);
-    currentDate.setDate(currentDate.getDate() + 1);
+
+exports.createTracking = [
+  body("date").notEmpty().isString().withMessage("Date must not be empty."),
+  body("city").notEmpty().isString().withMessage("City must not be empty."),
+  async (req, res, next) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      const error = new Error("Invalid value(s).");
+      error.status = 422;
+      error.data = errors.array();
+      return next(error);
+    }
+
+    const { date, city } = req.body;
+
+    if (!cities.includes(city)) {
+      const error = new Error("Invalid city.");
+      error.status = 422;
+      return next(error);
+    }
+
+    try {
+      const newTracking = new Email({
+        date,
+        city,
+        createdBy: "manual",
+        from: "manual",
+        text: "manual",
+      });
+      await newTracking.save();
+      res.status(201).json({
+        message: "Tracking created successfully.",
+        tracking: newTracking,
+      });
+    } catch (err) {
+      console.log(err);
+      const error = new Error("Tracking creation failed.");
+      error.status = 401;
+      return next(error);
+    }
+  },
+];
+
+exports.getAllManualTracking = async (req, res, next) => {
+  try {
+    const tracking = await Email.find({ createdBy: "manual" });
+    res.status(200).json({ tracking });
+  } catch (err) {
+    console.log(err);
+    const error = new Error("Fetching tracking failed.");
+    error.status = 500;
+    return next(error);
   }
-  return allDates;
-}
+};

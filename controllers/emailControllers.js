@@ -4,7 +4,7 @@ const Email = require("../models/Email");
 const { cities } = require("../constants/cities");
 const imap = new Imap({
   user: "dagarharish931@gmail.com",
-  password: "khaa blfv tkkd qinh",
+  password: "stpi hmwj tkpy pjoi",
   host: "imap.gmail.com",
   port: 993, // IMAPS (secure IMAP) port
   tls: true,
@@ -53,8 +53,8 @@ imap.once("ready", async () => {
               try {
                 const emailDomain = emailData.from.split("@")[1];
                 console.log(emailDomain);
-                if (emailDomain !== "applore.in") {
-                  console.log("Email domain is not applore.in");
+                if (emailDomain !== "panaceahomecare.com") {
+                  console.log("Email domain is not panaceahomecare.com");
                   return;
                 }
 
